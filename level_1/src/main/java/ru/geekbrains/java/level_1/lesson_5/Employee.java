@@ -1,22 +1,23 @@
 package ru.geekbrains.java.level_1.lesson_5;
 
-import com.sun.istack.internal.NotNull;
+
+import javax.annotation.Nonnull;
 
 public class Employee {
     private static final String OUTPUT_TEMPLATE = "Name = %s +\nposition = %s\nemail = %s\nphone = %s\nsalary = %d\nage = %d\n";
-    @NotNull
+    @Nonnull
     private String name;
-    @NotNull
+    @Nonnull
     private String position;
-    @NotNull
+    @Nonnull
     private String email;
-    @NotNull
+    @Nonnull
     private String phone;
     private int salary;
     private int age;
 
-    public Employee(@NotNull String name, @NotNull String position, @NotNull String email,
-                    @NotNull String phone, int salary, int age) {
+    public Employee(@Nonnull String name, @Nonnull String position, @Nonnull String email,
+                    @Nonnull String phone, int salary, int age) {
         this.name = name;
         this.position = position;
         this.email = email;
