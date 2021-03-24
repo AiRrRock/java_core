@@ -3,25 +3,22 @@ package ru.geekbrains.march.chat.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.*;
 
 public class Server {
     private int port;
     private List<ClientHandler> clients;
-    private Map<String, User> users;
+    private AuthenticationProvider authenticationProvider;
+
 
     public Server(int port) {
         this.port = port;
         this.clients = new ArrayList<>();
-        this.users = new HashMap<>();
-        for (int i = 0; i < 10; i++) {
-            users.put("u" + i, new User("u" + i, i + "pass", "Nickname" + i));
-        }
+        this.authenticationProvider = new InMemoryAuthenticationProvider();
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Сервер запущен на порту " + port);
+            System.out.println("Started server. Listening at " + port);
             while (true) {
-                System.out.println("Ждем нового клиента..");
+                System.out.println("Awaiting connections...");
                 Socket socket = serverSocket.accept();
                 System.out.println("Client connected");
                 new ClientHandler(this, socket);
@@ -32,9 +29,13 @@ public class Server {
 
     }
 
+    public AuthenticationProvider getAuthenticationProvider() {
+        return authenticationProvider;
+    }
+
     public synchronized void subscribe(ClientHandler clientHandler) {
-        clients.add(clientHandler);
         broadcastMessage("Client " + clientHandler.getUsername() + " logged in");
+        clients.add(clientHandler);
         broadcastClientsList();
     }
 
@@ -63,9 +64,6 @@ public class Server {
 
     public synchronized boolean isUserOnline(String username) {
         String name = username;
-        if(users.containsKey(username)){
-            name = users.get(username).getNickName();
-        }
         for (ClientHandler clientHandler : clients) {
             if (clientHandler.getUsername().equals(name)) {
                 return true;
@@ -86,14 +84,4 @@ public class Server {
         }
     }
 
-    public boolean authenticate(String login, String password) {
-        if(users.containsKey(login)){
-            return users.get(login).getPassword().equals(password);
-        }
-        return false;
-    }
-
-    public User getUser(String name) {
-        return users.get(name);
-    }
 }

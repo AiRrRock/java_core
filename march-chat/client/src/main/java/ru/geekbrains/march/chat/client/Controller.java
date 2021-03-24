@@ -6,7 +6,6 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -17,12 +16,14 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URL;
-import java.util.Base64;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
     @FXML
-    TextField msgField, usernameField, passwordField;
+    TextField msgField, usernameField;
+
+    @FXML
+    PasswordField passwordField;
 
     @FXML
     TextArea msgArea;
@@ -45,23 +46,16 @@ public class Controller implements Initializable {
 
     public void setUsername(String username) {
         this.username = username;
-        if (username != null) {
-            loginPanel.setVisible(false);
-            loginPanel.setManaged(false);
-            msgPanel.setVisible(true);
-            msgPanel.setManaged(true);
-            clientsList.setVisible(true);
-            clientsList.setManaged(true);
-            logoutButton.setVisible(true);
-            userList.setVisible(true);
-        } else {
-            loginPanel.setVisible(true);
-            loginPanel.setManaged(true);
-            msgPanel.setVisible(false);
-            msgPanel.setManaged(false);
-            clientsList.setVisible(false);
-            clientsList.setManaged(false);
-        }
+        boolean userNameIsNull = username == null;
+        loginPanel.setVisible(userNameIsNull);
+        loginPanel.setManaged(userNameIsNull);
+        msgPanel.setVisible(!userNameIsNull);
+        msgPanel.setManaged(!userNameIsNull);
+        clientsList.setVisible(!userNameIsNull);
+        clientsList.setManaged(!userNameIsNull);
+        logoutButton.setVisible(!userNameIsNull);
+        logoutButton.setManaged(!userNameIsNull);
+        userList.setVisible(!userNameIsNull);
     }
 
     @Override
@@ -71,14 +65,14 @@ public class Controller implements Initializable {
     }
 
     public void login() {
-        if (socket == null || socket.isClosed()) {
-            connect();
-        }
 
         if (usernameField.getText().isEmpty()) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Username cannot be empty", ButtonType.OK);
-            alert.showAndWait();
+            showErrorAlert("Username/password cannot be empty");
             return;
+        }
+
+        if (socket == null || socket.isClosed()) {
+            connect();
         }
 
         try {
@@ -99,11 +93,11 @@ public class Controller implements Initializable {
                     while (true) {
                         String msg = in.readUTF();
                         if (msg.startsWith("/login_ok ")) {
-                            setUsername(msg.split("\\s")[1]);
+                            setUsername(msg.split("\\s+")[1]);
                             break;
                         }
                         if (msg.startsWith("/login_failed ")) {
-                            String cause = msg.split("\\s", 2)[1];
+                            String cause = msg.split("\\s+", 2)[1];
                             msgArea.appendText(cause + "\n");
                         }
                     }
@@ -112,9 +106,7 @@ public class Controller implements Initializable {
                         String msg = in.readUTF();
                         if (msg.startsWith("/")) {
                             if (msg.startsWith("/clients_list ")) {
-                                // /clients_list Bob Max Jack
                                 String[] tokens = msg.split("\\s");
-
                                 Platform.runLater(() -> {
                                     System.out.println(Thread.currentThread().getName());
                                     clientsList.getItems().clear();
@@ -122,6 +114,9 @@ public class Controller implements Initializable {
                                         clientsList.getItems().add(tokens[i]);
                                     }
                                 });
+                            }
+                            if (msg.equals("/logout_ok")){
+                                break;
                             }
                             continue;
                         }
@@ -135,8 +130,7 @@ public class Controller implements Initializable {
             });
             t.start();
         } catch (IOException e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Невозможно подключиться к серверу", ButtonType.OK);
-            alert.showAndWait();
+            showErrorAlert("Unable to connect to the server");
         }
     }
 
@@ -146,26 +140,31 @@ public class Controller implements Initializable {
             msgField.clear();
             msgField.requestFocus();
         } catch (IOException e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Невозможно отправить сообщение", ButtonType.OK);
-            alert.showAndWait();
+            showErrorAlert("Unable to send message");
         }
     }
 
     private void disconnect() {
         setUsername(null);
+        msgArea.clear();
         try {
             if (socket != null) {
                 socket.close();
             }
         } catch (IOException e) {
-            // DO nothing
+            // Do nothing
         }
     }
 
     public void logout(ActionEvent actionEvent) throws IOException {
-        out.writeUTF(msgField.getText());
-        disconnect();
-        logoutButton.setVisible(false);
-        userList.setVisible(false);
+        out.writeUTF("/logout");
+    }
+
+    private void showErrorAlert(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setContentText(msg);
+        alert.setHeaderText(null);
+        alert.setTitle("March chat FX");
+        alert.showAndWait();
     }
 }
