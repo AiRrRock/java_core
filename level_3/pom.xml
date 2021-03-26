@@ -13,7 +13,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>lesson1</module>
+        <module>jdbc-example</module>
     </modules>
-
 
 </project>
