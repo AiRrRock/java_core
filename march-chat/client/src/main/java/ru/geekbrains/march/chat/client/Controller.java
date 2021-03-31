@@ -11,14 +11,14 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.URL;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
+    private String filePath = "history.txt";
+
     @FXML
     TextField msgField, usernameField;
 
@@ -61,6 +61,14 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setUsername(null);
+        File f = new File(filePath);
+        if (!f.exists()) {
+            try {
+                f.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         logoutButton.setVisible(false);
     }
 
@@ -83,17 +91,27 @@ public class Controller implements Initializable {
     }
 
     public void connect() {
-        try {
+        try  {
             socket = new Socket("localhost", 8189);
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
             Thread t = new Thread(() -> {
-                try {
+                try(FileOutputStream fileOutputStream = new FileOutputStream(filePath, true)) {
                     // Цикл авторизации
                     while (true) {
                         String msg = in.readUTF();
                         if (msg.startsWith("/login_ok ")) {
                             setUsername(msg.split("\\s+")[1]);
+                            byte[] data = new byte[64];
+                            try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(filePath))) {
+                                int len = 0;
+                                while ((len = in.read(data)) != -1) {
+                                    msgArea.appendText(new String(data, 0, len));
+                                }
+                            }
+                            if (msgArea.getText().isEmpty()) {
+                                msgArea.appendText("\n");
+                            }
                             break;
                         }
                         if (msg.startsWith("/login_failed ")) {
@@ -115,12 +133,14 @@ public class Controller implements Initializable {
                                     }
                                 });
                             }
-                            if (msg.equals("/logout_ok")){
+                            if (msg.equals("/logout_ok")) {
                                 break;
                             }
                             continue;
                         }
-                        msgArea.appendText(msg + "\n");
+                        String message = msg + "\n";
+                        msgArea.appendText(message);
+                        fileOutputStream.write(message.getBytes());
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
