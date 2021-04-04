@@ -5,11 +5,15 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
     private int port;
     private List<ClientHandler> clients;
     private AuthenticationProvider authenticationProvider;
+    private ExecutorService executorService;
 
     public AuthenticationProvider getAuthenticationProvider() {
         return authenticationProvider;
@@ -20,6 +24,12 @@ public class Server {
         this.clients = new ArrayList<>();
         this.authenticationProvider = new DbAuthenticationProvider();
         this.authenticationProvider.init();
+        // In this example we can use Executors.newFixedThreadPool(N) to limit the number of active users
+
+        //If we use Executors.newCachedThreadPool() the performance may degrade(in case we start with 15 active user and then decrease their number to i.e. 5)
+
+        // The only benefit is the ability to shutdown all the clients safely .
+        this.executorService = Executors.newCachedThreadPool();
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Started server. Listening at " + port);
             while (true) {
@@ -31,8 +41,13 @@ public class Server {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
+            executorService.shutdownNow();
             this.authenticationProvider.shutdown();
         }
+    }
+
+    public ExecutorService getExecutorService() {
+        return executorService;
     }
 
     public synchronized void subscribe(ClientHandler clientHandler) {
