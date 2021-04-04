@@ -85,3 +85,6 @@ Dick:
 Dick: saf
 Dick: daf
 Dick: df
+Клиент Dick вошел в чат
+Клиент Dick вошел в чат
+Welcome back, Dick

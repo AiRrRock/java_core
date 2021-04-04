@@ -3,18 +3,23 @@ package ru.geekbrains.march.chat.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Server {
     private int port;
     private List<ClientHandler> clients;
     private AuthenticationProvider authenticationProvider;
 
+    public AuthenticationProvider getAuthenticationProvider() {
+        return authenticationProvider;
+    }
 
     public Server(int port) {
         this.port = port;
         this.clients = new ArrayList<>();
-        this.authenticationProvider = new SqlliteAuthenticationProvider();
+        this.authenticationProvider = new DbAuthenticationProvider();
+        this.authenticationProvider.init();
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Started server. Listening at " + port);
             while (true) {
@@ -25,12 +30,9 @@ public class Server {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            this.authenticationProvider.shutdown();
         }
-
-    }
-
-    public AuthenticationProvider getAuthenticationProvider() {
-        return authenticationProvider;
     }
 
     public synchronized void subscribe(ClientHandler clientHandler) {
@@ -45,7 +47,7 @@ public class Server {
         broadcastClientsList();
     }
 
-    public synchronized void broadcastMessage(String message) {
+    public synchronized void broadcastMessage(String message)  {
         for (ClientHandler clientHandler : clients) {
             clientHandler.sendMessage(message);
         }
@@ -63,9 +65,8 @@ public class Server {
     }
 
     public synchronized boolean isUserOnline(String username) {
-        String name = username;
         for (ClientHandler clientHandler : clients) {
-            if (clientHandler.getUsername().equals(name)) {
+            if (clientHandler.getUsername().equals(username)) {
                 return true;
             }
         }
@@ -83,5 +84,4 @@ public class Server {
             clientHandler.sendMessage(clientsList);
         }
     }
-
 }

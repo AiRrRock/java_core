@@ -4,3 +4,5 @@ level_1/src/main/resources/
 level_1/src/test/
 */target/
 *.iml
+*.class
+*/*/target

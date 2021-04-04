@@ -1,10 +1,9 @@
 package ru.geekbrains.march.chat.server;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
+import java.sql.Statement;
 
 public class ClientHandler {
     private static final String IDENTITY_REQUEST = "who_am_i";
@@ -18,7 +17,6 @@ public class ClientHandler {
     private DataInputStream in;
     private DataOutputStream out;
     private String username;
-    private int msgCounter = 0;
     private boolean loggingOut;
 
     public String getUsername() {
@@ -36,33 +34,29 @@ public class ClientHandler {
                 while (true) { // Цикл авторизации
                     String msg = in.readUTF();
                     if (msg.startsWith("/login ")) {
-                        String[] cred = msg.split("\\s", 3);
-                        if (cred.length != 3) {
+                        // /login Bob 100xyz
+                        String[] tokens = msg.split("\\s+");
+                        if (tokens.length != 3) {
                             sendMessage("/login_failed Enter login and password");
                             continue;
                         }
+                        String login = tokens[1];
+                        String password = tokens[2];
 
-                        String login = cred[1];
-                        String password = cred[2];
-
-                        String nickname = server.getAuthenticationProvider().getNicknameByLoginAndPassword(login, password);
-
-                        if (nickname == null) {
+                        String userNickname = server.getAuthenticationProvider().getNicknameByLoginAndPassword(login, password);
+                        if (userNickname == null) {
                             sendMessage("/login_failed Incorrect login/password");
                             continue;
                         }
-
-                        if (server.isUserOnline(nickname)) {
-                            sendMessage("/login_failed Current nickname is already in use");
+                        if (server.isUserOnline(userNickname)) {
+                            sendMessage("/login_failed Current nickname is already in use\"1111");
                             continue;
                         }
-
-                        username = nickname;
+                        username = userNickname;
                         sendMessage("/login_ok " + username);
                         server.subscribe(this);
-                        sendMessage("Welcome back, " + nickname);
+                        sendMessage("Welcome back, " + username);
                         break;
-
                     }
                 }
 
@@ -74,10 +68,9 @@ public class ClientHandler {
                     String msg = in.readUTF();
                     if (msg.startsWith("/")) {
                         processCommands(msg.substring(1));
-                    } else {
-                        server.broadcastMessage(username + ": " + msg);
+                        continue;
                     }
-
+                    server.broadcastMessage(username + ": " + msg);
                 }
             } catch (SocketException sc) {
                 System.out.println(username + " disconnected");
@@ -127,9 +120,11 @@ public class ClientHandler {
             case CHANGE_NAME_REQUEST:
                 if (strings.length == 2) {
                     String newName = strings[1];
-                    if (server.isUserOnline(newName)) {
-                        this.sendMessage(String.format("Server: Unable to change name to %s, nickname is already in use", newName));
-                    } else {
+                    if (server.getAuthenticationProvider().isNickBusy(newName)) {
+                        sendMessage("Server: Nickname is already in use");
+                        return;
+                    }
+                    else {
                         server.getAuthenticationProvider().changeNickname(username, newName);
                         username = newName;
                         this.sendMessage(String.format("Server: Changed name to %s", newName));
@@ -146,4 +141,3 @@ public class ClientHandler {
         }
     }
 }
-
