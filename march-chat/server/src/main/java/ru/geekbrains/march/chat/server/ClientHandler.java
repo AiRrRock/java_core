@@ -29,9 +29,12 @@ public class ClientHandler {
         this.loggingOut = false;
         this.in = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
-        new Thread(() -> {
+        this.server.getExecutorService().execute(new Thread(() -> {
             try {
                 while (true) { // Цикл авторизации
+                    if (Thread.currentThread().isInterrupted()) {
+                        break;
+                    }
                     String msg = in.readUTF();
                     if (msg.startsWith("/login ")) {
                         // /login Bob 100xyz
@@ -61,6 +64,9 @@ public class ClientHandler {
                 }
 
                 while (true) { // Цикл общения с клиентом
+                    if (Thread.currentThread().isInterrupted()) {
+                        break;
+                    }
                     if (loggingOut) {
                         System.out.println(username + " disconnected");
                         break;
@@ -79,7 +85,7 @@ public class ClientHandler {
             } finally {
                 disconnect();
             }
-        }).start();
+        }));
     }
 
     public void sendMessage(String message) {
@@ -123,8 +129,7 @@ public class ClientHandler {
                     if (server.getAuthenticationProvider().isNickBusy(newName)) {
                         sendMessage("Server: Nickname is already in use");
                         return;
-                    }
-                    else {
+                    } else {
                         server.getAuthenticationProvider().changeNickname(username, newName);
                         username = newName;
                         this.sendMessage(String.format("Server: Changed name to %s", newName));
