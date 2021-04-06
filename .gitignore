@@ -1,8 +1,7 @@
 /.idea/
-level_1/level_1.iml
 level_1/src/main/resources/
 level_1/src/test/
 */target/
 *.iml
-.class
+*.class
 */*/target
