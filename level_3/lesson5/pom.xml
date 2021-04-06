@@ -3,20 +3,17 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>java</artifactId>
+        <artifactId>level_3</artifactId>
         <groupId>ru.geekbrains</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>level_3</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>lesson1</module>
-        <module>jdbc-example</module>
-        <module>lesson4</module>
-        <module>multithreading</module>
-        <module>lesson5</module>
-    </modules>
+    <groupId>ru.geekbrains</groupId>
+    <artifactId>lesson5</artifactId>
 
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
 </project>
