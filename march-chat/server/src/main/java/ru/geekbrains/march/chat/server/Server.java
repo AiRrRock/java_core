@@ -41,10 +41,12 @@ public class Server {
                 Socket socket = serverSocket.accept();
                 System.out.println("Client connected");
                 new ClientHandler(this, socket);
+                LOGGER.info("New client connected");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e);
         } finally {
+            LOGGER.info("Server is shutting down");
             executorService.shutdownNow();
             this.authenticationProvider.shutdown();
         }
