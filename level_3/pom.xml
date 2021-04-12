@@ -17,6 +17,7 @@
         <module>lesson4</module>
         <module>multithreading</module>
         <module>lesson5</module>
+        <module>junit5-testing</module>
     </modules>
 
 </project>
