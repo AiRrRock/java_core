@@ -5,15 +5,17 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Server {
     private int port;
     private List<ClientHandler> clients;
     private AuthenticationProvider authenticationProvider;
     private ExecutorService executorService;
+    private static final Logger LOGGER = LogManager.getLogger(Server.class.getName());
 
     public AuthenticationProvider getAuthenticationProvider() {
         return authenticationProvider;
@@ -24,6 +26,7 @@ public class Server {
         this.clients = new ArrayList<>();
         this.authenticationProvider = new DbAuthenticationProvider();
         this.authenticationProvider.init();
+        LOGGER.info("Started server");
         // In this example we can use Executors.newFixedThreadPool(N) to limit the number of active users
 
         //If we use Executors.newCachedThreadPool() the performance may degrade(in case we start with 15 active user and then decrease their number to i.e. 5)
@@ -37,10 +40,12 @@ public class Server {
                 Socket socket = serverSocket.accept();
                 System.out.println("Client connected");
                 new ClientHandler(this, socket);
+                LOGGER.info("New client connected");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e);
         } finally {
+            LOGGER.info("Server is shutting down");
             executorService.shutdownNow();
             this.authenticationProvider.shutdown();
         }

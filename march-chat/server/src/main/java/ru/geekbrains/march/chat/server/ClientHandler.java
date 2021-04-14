@@ -1,5 +1,8 @@
 package ru.geekbrains.march.chat.server;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
@@ -10,6 +13,7 @@ public class ClientHandler {
     private static final String PERSONAL_MSG_REQUEST = "w";
     private static final String CHANGE_NAME_REQUEST = "change_nick";
     private static final String LOGOUT_REQUEST = "logout";
+    private static final Logger LOGGER = LogManager.getLogger(Server.class.getName());
 
 
     private Server server;
@@ -59,6 +63,7 @@ public class ClientHandler {
                         sendMessage("/login_ok " + username);
                         server.subscribe(this);
                         sendMessage("Welcome back, " + username);
+                        LOGGER.info("Client logged in");
                         break;
                     }
                 }
@@ -69,18 +74,22 @@ public class ClientHandler {
                     }
                     if (loggingOut) {
                         System.out.println(username + " disconnected");
+                        LOGGER.info("Client disconnected");
                         break;
                     }
                     String msg = in.readUTF();
                     if (msg.startsWith("/")) {
+                        LOGGER.info("Client sent command" + msg);
                         processCommands(msg.substring(1));
                         continue;
                     }
+                    LOGGER.info("Client sent message");
                     server.broadcastMessage(username + ": " + msg);
                 }
             } catch (SocketException sc) {
                 System.out.println(username + " disconnected");
             } catch (IOException e) {
+                LOGGER.error(e);
                 e.printStackTrace();
             } finally {
                 disconnect();

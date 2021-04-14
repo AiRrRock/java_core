@@ -17,7 +17,7 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class Controller implements Initializable {
-    private String filePath = "history.txt";
+    private String filePath = "";
 
     @FXML
     TextField msgField, usernameField;
@@ -61,14 +61,7 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         setUsername(null);
-        File f = new File(filePath);
-        if (!f.exists()) {
-            try {
-                f.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+
         logoutButton.setVisible(false);
     }
 
@@ -91,28 +84,42 @@ public class Controller implements Initializable {
     }
 
     public void connect() {
-        try  {
+        try {
             socket = new Socket("localhost", 8189);
             in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
             Thread t = new Thread(() -> {
-                try(FileOutputStream fileOutputStream = new FileOutputStream(filePath, true)) {
+                try {
                     // Цикл авторизации
                     while (true) {
                         String msg = in.readUTF();
                         if (msg.startsWith("/login_ok ")) {
-                            setUsername(msg.split("\\s+")[1]);
+                            String username = msg.split("\\s+")[1];
+                            setUsername(username);
                             byte[] data = new byte[64];
+                            if (msgArea.getText().isEmpty()) {
+                                msgArea.appendText("\n");
+                            }
+                            //Create file
+                            filePath = String.format("history%s.txt", username);
+                            File f = new File(filePath);
+                            if (!f.exists()) {
+                                try {
+                                    f.createNewFile();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+
                             try (BufferedInputStream in = new BufferedInputStream(new FileInputStream(filePath))) {
                                 int len = 0;
                                 while ((len = in.read(data)) != -1) {
                                     msgArea.appendText(new String(data, 0, len));
                                 }
                             }
-                            if (msgArea.getText().isEmpty()) {
-                                msgArea.appendText("\n");
-                            }
+
                             break;
+
                         }
                         if (msg.startsWith("/login_failed ")) {
                             String cause = msg.split("\\s+", 2)[1];
@@ -120,27 +127,31 @@ public class Controller implements Initializable {
                         }
                     }
                     // Цикл общения
-                    while (true) {
-                        String msg = in.readUTF();
-                        if (msg.startsWith("/")) {
-                            if (msg.startsWith("/clients_list ")) {
-                                String[] tokens = msg.split("\\s");
-                                Platform.runLater(() -> {
-                                    System.out.println(Thread.currentThread().getName());
-                                    clientsList.getItems().clear();
-                                    for (int i = 1; i < tokens.length; i++) {
-                                        clientsList.getItems().add(tokens[i]);
-                                    }
-                                });
+                    try (FileOutputStream fileOutputStream = new FileOutputStream(filePath, true)) {
+                        while (true) {
+                            String msg = in.readUTF();
+                            if (msg.startsWith("/")) {
+                                if (msg.startsWith("/clients_list ")) {
+                                    String[] tokens = msg.split("\\s");
+                                    Platform.runLater(() -> {
+                                        System.out.println(Thread.currentThread().getName());
+                                        clientsList.getItems().clear();
+                                        for (int i = 1; i < tokens.length; i++) {
+                                            clientsList.getItems().add(tokens[i]);
+                                        }
+                                    });
+                                }
+                                if (msg.equals("/logout_ok")) {
+                                    break;
+                                }
+                                continue;
                             }
-                            if (msg.equals("/logout_ok")) {
-                                break;
-                            }
-                            continue;
+                            String message = msg + "\n";
+                            msgArea.appendText(message);
+                            fileOutputStream.write(message.getBytes());
                         }
-                        String message = msg + "\n";
-                        msgArea.appendText(message);
-                        fileOutputStream.write(message.getBytes());
+                    } catch (IOException e) {
+                        throw e;
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
