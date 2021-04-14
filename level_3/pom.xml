@@ -19,6 +19,7 @@
         <module>lesson5</module>
         <module>junit5-testing</module>
         <module>lesson6</module>
+        <module>lesson7</module>
     </modules>
 
 </project>
